@@ -10,6 +10,11 @@ import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 
+// Premium Pages
+import PremiumUpgradePage from './pages/PremiumUpgradePage';
+import PremiumDashboardPage from './pages/PremiumDashboardPage';
+import PremiumFeaturesPage from './pages/PremiumFeaturesPage';
+
 // Admin Components
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import AdminLayout from './components/admin/AdminLayout';
@@ -40,6 +45,11 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+            {/* Premium Routes */}
+            <Route path="/premium/upgrade" element={<PremiumUpgradePage />} />
+            <Route path="/premium/features" element={<PremiumFeaturesPage />} />
+            <Route path="/dashboard/premium" element={<PremiumDashboardPage />} />
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLoginPage />} />

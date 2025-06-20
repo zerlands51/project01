@@ -5,6 +5,7 @@ import PropertyCard from '../components/common/PropertyCard';
 import SearchBox from '../components/common/SearchBox';
 import { properties } from '../data/properties';
 import { Property } from '../types';
+import { premiumService } from '../services/premiumService';
 import { GridIcon, List, SortAsc } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 
@@ -21,7 +22,7 @@ const PropertyListingPage: React.FC = () => {
   
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'newest' | 'price_asc' | 'price_desc'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'price_asc' | 'price_desc' | 'premium'>('premium');
   
   useEffect(() => {
     let filtered = properties.filter(property => property.purpose === purpose);
@@ -48,8 +49,19 @@ const PropertyListingPage: React.FC = () => {
       );
     }
     
-    // Sort properties
-    if (sortBy === 'newest') {
+    // Sort properties with premium listings first
+    if (sortBy === 'premium') {
+      filtered.sort((a, b) => {
+        const aPremium = premiumService.getPremiumListing(a.id);
+        const bPremium = premiumService.getPremiumListing(b.id);
+        
+        if (aPremium && !bPremium) return -1;
+        if (!aPremium && bPremium) return 1;
+        
+        // If both are premium or both are standard, sort by newest
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } else if (sortBy === 'newest') {
       filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else if (sortBy === 'price_asc') {
       filtered.sort((a, b) => {
@@ -129,6 +141,7 @@ const PropertyListingPage: React.FC = () => {
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as any)}
                       >
+                        <option value="premium">Premium & Terbaru</option>
                         <option value="newest">Terbaru</option>
                         <option value="price_asc">Harga: Rendah ke Tinggi</option>
                         <option value="price_desc">Harga: Tinggi ke Rendah</option>

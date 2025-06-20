@@ -3,12 +3,35 @@ import { Link } from 'react-router-dom';
 import { Heart, MapPin, Bed, Bath, Move } from 'lucide-react';
 import { Property } from '../../types';
 import { formatPrice } from '../../utils/formatter';
+import { premiumService } from '../../services/premiumService';
+import PremiumPropertyCard from '../premium/PremiumPropertyCard';
 
 interface PropertyCardProps {
   property: Property;
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
+  // Check if this property has premium listing
+  const premiumListing = premiumService.getPremiumListing(property.id);
+
+  const handleAnalyticsUpdate = (type: 'view' | 'inquiry' | 'favorite') => {
+    if (premiumListing) {
+      premiumService.updateAnalytics(property.id, type);
+    }
+  };
+
+  // If property has premium listing, use PremiumPropertyCard
+  if (premiumListing) {
+    return (
+      <PremiumPropertyCard 
+        property={property} 
+        premiumListing={premiumListing}
+        onAnalyticsUpdate={handleAnalyticsUpdate}
+      />
+    );
+  }
+
+  // Standard property card
   const {
     id,
     title,
