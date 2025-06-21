@@ -22,6 +22,7 @@ import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import PropertyManagement from './pages/admin/PropertyManagement';
+import PremiumManagement from './pages/admin/PremiumManagement';
 import CategoryManagement from './pages/admin/CategoryManagement';
 import LocationManagement from './pages/admin/LocationManagement';
 import ReportsManagement from './pages/admin/ReportsManagement';
@@ -63,6 +64,7 @@ function App() {
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="properties" element={<PropertyManagement />} />
+              <Route path="premium" element={<PremiumManagement />} />
               <Route path="categories" element={<CategoryManagement />} />
               <Route path="locations" element={<LocationManagement />} />
               <Route path="reports" element={<ReportsManagement />} />

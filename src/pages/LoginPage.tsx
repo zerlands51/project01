@@ -1,33 +1,42 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   
-  const handleLogin = (e: React.FormEvent) => {
+  const { signIn, isAuthenticated, loading, error, clearError } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const from = location.state?.from?.pathname || '/';
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from]);
+
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
     
-    // Simulate login API call
-    setTimeout(() => {
-      setIsLoading(false);
-      // For demo purposes, just show successful login for any input
-      if (email && password) {
-        // Success - would normally redirect or update auth state
-        console.log('Login successful:', { email, password: '********', rememberMe });
-      } else {
-        setError('Email dan password harus diisi');
-      }
-    }, 1000);
+    try {
+      await signIn(email, password);
+      // Navigation will be handled by the useEffect above
+    } catch (error) {
+      // Error is handled by the context
+      console.error('Login failed:', error);
+    }
   };
   
   return (
@@ -47,8 +56,12 @@ const LoginPage: React.FC = () => {
               </h1>
               
               {error && (
-                <div className="bg-error-50 text-error-700 p-3 rounded-md mb-4">
-                  {error}
+                <div className="bg-error-50 border border-error-200 text-error-700 p-3 rounded-md mb-4 flex items-start">
+                  <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Login gagal</p>
+                    <p className="text-sm">{error}</p>
+                  </div>
                 </div>
               )}
               
@@ -65,6 +78,7 @@ const LoginPage: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={loading}
                   />
                 </div>
                 
@@ -81,6 +95,7 @@ const LoginPage: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      disabled={loading}
                     />
                     <button
                       type="button"
@@ -101,6 +116,7 @@ const LoginPage: React.FC = () => {
                       className="h-4 w-4 text-primary border-neutral-300 rounded focus:ring-primary"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
+                      disabled={loading}
                     />
                     <label htmlFor="remember" className="ml-2 block text-sm text-neutral-700">
                       Ingat saya
@@ -113,10 +129,10 @@ const LoginPage: React.FC = () => {
                 
                 <button
                   type="submit"
-                  className="w-full btn-primary py-2.5"
-                  disabled={isLoading}
+                  className="w-full btn-primary py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
                 >
-                  {isLoading ? 'Memproses...' : 'Masuk'}
+                  {loading ? 'Memproses...' : 'Masuk'}
                 </button>
               </form>
               
@@ -127,6 +143,17 @@ const LoginPage: React.FC = () => {
                     Daftar sekarang
                   </Link>
                 </p>
+              </div>
+
+              {/* Demo credentials for testing */}
+              <div className="mt-6 pt-6 border-t border-neutral-200">
+                <div className="bg-neutral-50 p-3 rounded-lg">
+                  <p className="text-xs text-neutral-600 mb-2">Demo Credentials:</p>
+                  <div className="text-xs text-neutral-700 space-y-1">
+                    <p><strong>Admin:</strong> admin@propertipro.id / admin123</p>
+                    <p><strong>Super Admin:</strong> superadmin@propertipro.id / admin123</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

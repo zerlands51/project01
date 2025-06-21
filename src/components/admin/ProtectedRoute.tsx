@@ -13,7 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAdmin = false, 
   requireSuperAdmin = false 
 }) => {
-  const { isAuthenticated, loading, isAdmin, isSuperAdmin } = useAuth();
+  const { isAuthenticated, loading, isAdmin, isSuperAdmin, user } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -33,6 +33,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requireAdmin && !isAdmin()) {
+    return <Navigate to="/admin/unauthorized" replace />;
+  }
+
+  // Check if user account is suspended
+  if (user?.status === 'suspended') {
     return <Navigate to="/admin/unauthorized" replace />;
   }
 

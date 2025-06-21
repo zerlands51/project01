@@ -3,34 +3,24 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { useAuth } from '../contexts/AuthContext';
 
 const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get('token');
   
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState('');
-  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  
+  const { updatePassword, loading, error, clearError, session } = useAuth();
 
   useEffect(() => {
-    // Validate token on component mount
-    if (!token) {
-      setTokenValid(false);
-      return;
-    }
-
-    // Simulate token validation
-    setTimeout(() => {
-      // In a real app, you'd validate the token with your backend
-      setTokenValid(true);
-    }, 1000);
-  }, [token]);
+    clearError();
+  }, [clearError]);
 
   const validatePassword = (password: string): string[] => {
     const errors: string[] = [];
@@ -53,59 +43,37 @@ const ResetPasswordPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
+    
     // Validate passwords
     const passwordErrors = validatePassword(password);
     if (passwordErrors.length > 0) {
-      setError(passwordErrors.join(', '));
-      setIsLoading(false);
+      setValidationErrors(passwordErrors);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Password dan konfirmasi password tidak cocok');
-      setIsLoading(false);
+      setValidationErrors(['Password dan konfirmasi password tidak cocok']);
       return;
     }
 
+    setValidationErrors([]);
+
     try {
-      // Simulate API call to reset password
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await updatePassword(password);
       setIsSuccess(true);
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/login');
       }, 3000);
-    } catch (err) {
-      setError('Terjadi kesalahan. Silakan coba lagi.');
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      // Error is handled by context
+      console.error('Password update failed:', error);
     }
   };
 
-  // Loading state while validating token
-  if (tokenValid === null) {
-    return (
-      <Layout>
-        <div className="bg-neutral-100 py-12">
-          <div className="container mx-auto px-4">
-            <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="p-6 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-neutral-600">Memvalidasi link reset password...</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // Invalid token state
-  if (tokenValid === false) {
+  // Check if user has a valid session (from reset link)
+  if (!session) {
     return (
       <Layout>
         <Helmet>
@@ -210,9 +178,20 @@ const ResetPasswordPage: React.FC = () => {
                 </p>
               </div>
               
-              {error && (
-                <div className="bg-error-50 text-error-700 p-3 rounded-md mb-4">
-                  {error}
+              {(error || validationErrors.length > 0) && (
+                <div className="bg-error-50 border border-error-200 text-error-700 p-3 rounded-md mb-4">
+                  <div className="flex items-start">
+                    <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">Terjadi kesalahan:</p>
+                      <ul className="text-sm mt-1 space-y-1">
+                        {error && <li>• {error}</li>}
+                        {validationErrors.map((err, index) => (
+                          <li key={index}>• {err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
               
@@ -231,6 +210,7 @@ const ResetPasswordPage: React.FC = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       minLength={8}
+                      disabled={loading}
                     />
                     <button
                       type="button"
@@ -264,6 +244,7 @@ const ResetPasswordPage: React.FC = () => {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
+                      disabled={loading}
                     />
                     <button
                       type="button"
@@ -278,10 +259,10 @@ const ResetPasswordPage: React.FC = () => {
                 
                 <button
                   type="submit"
-                  className="w-full btn-primary py-2.5"
-                  disabled={isLoading}
+                  className="w-full btn-primary py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
                 >
-                  {isLoading ? 'Memproses...' : 'Reset Password'}
+                  {loading ? 'Memproses...' : 'Reset Password'}
                 </button>
               </form>
               

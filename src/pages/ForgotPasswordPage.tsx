@@ -1,45 +1,49 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { useAuth } from '../contexts/AuthContext';
 
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { resetPassword, error, clearError } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    clearError();
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setError('Masukkan alamat email yang valid');
       setIsLoading(false);
       return;
     }
 
-    // Simulate API call for password reset
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await resetPassword(email);
       setIsSubmitted(true);
-    } catch (err) {
-      setError('Terjadi kesalahan. Silakan coba lagi.');
+    } catch (error) {
+      // Error is handled by context
+      console.error('Password reset failed:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResendEmail = () => {
+  const handleResendEmail = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      await resetPassword(email);
+    } catch (error) {
+      console.error('Resend failed:', error);
+    } finally {
       setIsLoading(false);
-      // Show success message or update UI
-    }, 1000);
+    }
   };
 
   if (isSubmitted) {
@@ -84,7 +88,7 @@ const ForgotPasswordPage: React.FC = () => {
                   <button
                     onClick={handleResendEmail}
                     disabled={isLoading}
-                    className="w-full btn-primary"
+                    className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? 'Mengirim...' : 'Kirim Ulang Email'}
                   </button>
@@ -145,8 +149,12 @@ const ForgotPasswordPage: React.FC = () => {
               </div>
               
               {error && (
-                <div className="bg-error-50 text-error-700 p-3 rounded-md mb-4">
-                  {error}
+                <div className="bg-error-50 border border-error-200 text-error-700 p-3 rounded-md mb-4 flex items-start">
+                  <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Gagal mengirim email</p>
+                    <p className="text-sm">{error}</p>
+                  </div>
                 </div>
               )}
               
@@ -165,13 +173,14 @@ const ForgotPasswordPage: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
                 
                 <button
                   type="submit"
-                  className="w-full btn-primary py-2.5 mb-4"
+                  className="w-full btn-primary py-2.5 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Mengirim...' : 'Kirim Link Reset Password'}

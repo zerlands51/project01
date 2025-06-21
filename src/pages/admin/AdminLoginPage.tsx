@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, Shield } from 'lucide-react';
+import { Eye, EyeOff, Shield, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Helmet } from 'react-helmet-async';
 
@@ -8,19 +8,20 @@ const AdminLoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   
-  const { login, error, isAuthenticated, clearError } = useAuth();
+  const { signIn, error, isAuthenticated, isAdmin, loading, clearError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
   const from = location.state?.from?.pathname || '/admin/dashboard';
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isAdmin()) {
       navigate(from, { replace: true });
+    } else if (isAuthenticated && !isAdmin()) {
+      navigate('/admin/unauthorized', { replace: true });
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, isAdmin, navigate, from]);
 
   useEffect(() => {
     clearError();
@@ -28,14 +29,13 @@ const AdminLoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
     try {
-      await login(email, password);
+      await signIn(email, password);
+      // Navigation will be handled by the useEffect above
     } catch (error) {
       // Error is handled by context
-    } finally {
-      setIsLoading(false);
+      console.error('Admin login failed:', error);
     }
   };
 
@@ -64,8 +64,12 @@ const AdminLoginPage: React.FC = () => {
           </div>
           
           {error && (
-            <div className="bg-error-50 text-error-700 p-3 rounded-md mb-4">
-              {error}
+            <div className="bg-error-50 border border-error-200 text-error-700 p-3 rounded-md mb-4 flex items-start">
+              <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Login gagal</p>
+                <p className="text-sm">{error}</p>
+              </div>
             </div>
           )}
           
@@ -82,6 +86,7 @@ const AdminLoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
             
@@ -98,6 +103,7 @@ const AdminLoginPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={loading}
                 />
                 <button
                   type="button"
@@ -112,10 +118,10 @@ const AdminLoginPage: React.FC = () => {
             
             <button
               type="submit"
-              className="w-full btn-primary py-2.5"
-              disabled={isLoading}
+              className="w-full btn-primary py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
             >
-              {isLoading ? 'Memproses...' : 'Masuk ke Admin Panel'}
+              {loading ? 'Memproses...' : 'Masuk ke Admin Panel'}
             </button>
           </form>
           

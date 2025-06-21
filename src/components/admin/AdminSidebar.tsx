@@ -12,7 +12,8 @@ import {
   Shield,
   Tags,
   AlertTriangle,
-  History
+  History,
+  Crown
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -27,6 +28,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
     { icon: Users, label: 'Pengguna', path: '/admin/users' },
     { icon: Home, label: 'Properti', path: '/admin/properties' },
+    { icon: Crown, label: 'Premium Ads', path: '/admin/premium' },
     { icon: Tags, label: 'Kategori', path: '/admin/categories' },
     { icon: MapPin, label: 'Lokasi', path: '/admin/locations' },
     { icon: Flag, label: 'Laporan', path: '/admin/reports' },

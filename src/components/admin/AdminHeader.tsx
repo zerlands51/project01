@@ -7,12 +7,16 @@ interface AdminHeaderProps {
 }
 
 const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuClick }) => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    setShowDropdown(false);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setShowDropdown(false);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   return (
@@ -47,15 +51,23 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuClick }) => {
               className="flex items-center space-x-2 text-neutral-700 hover:text-neutral-900"
             >
               <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                <User size={16} className="text-primary" />
+                {user?.avatar_url ? (
+                  <img 
+                    src={user.avatar_url} 
+                    alt={user.full_name}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <User size={16} className="text-primary" />
+                )}
               </div>
-              <span className="hidden md:block font-medium">{user?.name}</span>
+              <span className="hidden md:block font-medium">{user?.full_name}</span>
             </button>
             
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-50">
                 <div className="px-4 py-2 border-b border-neutral-200">
-                  <p className="text-sm font-medium text-neutral-900">{user?.name}</p>
+                  <p className="text-sm font-medium text-neutral-900">{user?.full_name}</p>
                   <p className="text-xs text-neutral-500">{user?.email}</p>
                   <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
                     {user?.role === 'superadmin' ? 'Super Admin' : 'Admin'}

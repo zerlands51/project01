@@ -1,60 +1,103 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { useAuth } from '../contexts/AuthContext';
 
 const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     phone: '',
     password: '',
     confirmPassword: '',
+    role: 'user' as 'user' | 'agent',
     agreeTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const { signUp, isAuthenticated, loading, error, clearError } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+
+    // Clear validation errors when user starts typing
+    if (validationErrors.length > 0) {
+      setValidationErrors([]);
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const errors: string[] = [];
+
+    if (!formData.fullName.trim()) {
+      errors.push('Nama lengkap harus diisi');
+    }
+
+    if (!formData.email.trim()) {
+      errors.push('Email harus diisi');
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.push('Format email tidak valid');
+    }
+
+    if (!formData.password) {
+      errors.push('Password harus diisi');
+    } else if (formData.password.length < 8) {
+      errors.push('Password minimal 8 karakter');
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      errors.push('Password dan konfirmasi password tidak cocok');
+    }
+
+    if (!formData.agreeTerms) {
+      errors.push('Anda harus menyetujui syarat dan ketentuan');
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
   };
   
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
     
-    // Basic validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Password dan konfirmasi password tidak cocok');
-      setIsLoading(false);
+    if (!validateForm()) {
       return;
     }
     
-    if (!formData.agreeTerms) {
-      setError('Anda harus menyetujui syarat dan ketentuan');
-      setIsLoading(false);
-      return;
-    }
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      // Success - would normally redirect or update auth state
-      console.log('Registration successful:', {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        password: '********'
+    try {
+      await signUp(formData.email, formData.password, {
+        fullName: formData.fullName,
+        phone: formData.phone || undefined,
+        role: formData.role,
       });
-    }, 1000);
+
+      // Show success message or redirect
+      // Navigation will be handled by the useEffect above if auto-confirmed
+    } catch (error) {
+      // Error is handled by the context
+      console.error('Registration failed:', error);
+    }
   };
   
   return (
@@ -73,26 +116,38 @@ const RegisterPage: React.FC = () => {
                 Daftar di <span className="text-primary">Properti Pro</span>
               </h1>
               
-              {error && (
-                <div className="bg-error-50 text-error-700 p-3 rounded-md mb-4">
-                  {error}
+              {(error || validationErrors.length > 0) && (
+                <div className="bg-error-50 border border-error-200 text-error-700 p-3 rounded-md mb-4">
+                  <div className="flex items-start">
+                    <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">Terjadi kesalahan:</p>
+                      <ul className="text-sm mt-1 space-y-1">
+                        {error && <li>• {error}</li>}
+                        {validationErrors.map((err, index) => (
+                          <li key={index}>• {err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
               
               <form onSubmit={handleRegister}>
                 <div className="mb-4">
-                  <label htmlFor="name" className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label htmlFor="fullName" className="block text-sm font-medium text-neutral-700 mb-1">
                     Nama Lengkap
                   </label>
                   <input
                     type="text"
-                    id="name"
-                    name="name"
+                    id="fullName"
+                    name="fullName"
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="Masukkan nama lengkap"
-                    value={formData.name}
+                    value={formData.fullName}
                     onChange={handleChange}
                     required
+                    disabled={loading}
                   />
                 </div>
                 
@@ -109,12 +164,13 @@ const RegisterPage: React.FC = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    disabled={loading}
                   />
                 </div>
                 
                 <div className="mb-4">
                   <label htmlFor="phone" className="block text-sm font-medium text-neutral-700 mb-1">
-                    Nomor Telepon
+                    Nomor Telepon <span className="text-neutral-400">(Opsional)</span>
                   </label>
                   <input
                     type="tel"
@@ -124,8 +180,25 @@ const RegisterPage: React.FC = () => {
                     placeholder="Masukkan nomor telepon"
                     value={formData.phone}
                     onChange={handleChange}
-                    required
+                    disabled={loading}
                   />
+                </div>
+
+                <div className="mb-4">
+                  <label htmlFor="role" className="block text-sm font-medium text-neutral-700 mb-1">
+                    Jenis Akun
+                  </label>
+                  <select
+                    id="role"
+                    name="role"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    value={formData.role}
+                    onChange={handleChange}
+                    disabled={loading}
+                  >
+                    <option value="user">Pengguna (Pencari Properti)</option>
+                    <option value="agent">Agen Properti</option>
+                  </select>
                 </div>
                 
                 <div className="mb-4">
@@ -143,6 +216,7 @@ const RegisterPage: React.FC = () => {
                       onChange={handleChange}
                       required
                       minLength={8}
+                      disabled={loading}
                     />
                     <button
                       type="button"
@@ -172,6 +246,7 @@ const RegisterPage: React.FC = () => {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       required
+                      disabled={loading}
                     />
                     <button
                       type="button"
@@ -194,6 +269,7 @@ const RegisterPage: React.FC = () => {
                       checked={formData.agreeTerms}
                       onChange={handleChange}
                       required
+                      disabled={loading}
                     />
                     <label htmlFor="agreeTerms" className="ml-2 block text-sm text-neutral-700">
                       Saya setuju dengan{' '}
@@ -210,10 +286,10 @@ const RegisterPage: React.FC = () => {
                 
                 <button
                   type="submit"
-                  className="w-full btn-primary py-2.5"
-                  disabled={isLoading}
+                  className="w-full btn-primary py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
                 >
-                  {isLoading ? 'Memproses...' : 'Daftar'}
+                  {loading ? 'Memproses...' : 'Daftar'}
                 </button>
               </form>
               
